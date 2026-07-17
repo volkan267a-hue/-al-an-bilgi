@@ -44,16 +44,14 @@ const Lock = (p) => <Icon {...p}><rect x="5" y="11" width="14" height="10" rx="2
 const Eye = (p) => <Icon {...p}><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></Icon>;
 const EyeOff = (p) => <Icon {...p}><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.6 18.6 0 0 1 4.22-5.06M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 7 11 7a18.6 18.6 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></Icon>;
 const Pencil = (p) => <Icon {...p}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="M15 5l4 4"/></Icon>;
+const Save = (p) => <Icon {...p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></Icon>;
 
 // ---------------------------------------------------------------------------
-// İlk Kurulum İçin Varsayılan Örnek Veriler
+// İlk Kurulumda Bulutta Veri Yoksa Kullanılacak Varsayılan Yedekler
 // ---------------------------------------------------------------------------
 const ADMIN_PASSWORD = 'admin123';
 const DEFAULT_EMPLOYEE_PASSWORD = '1234';
-const STORAGE_KEYS = {
-  employees: "portal_employees",
-  announcements: "portal_announcements"
-};
+
 const initialEmployees = [
   { id: 1, ad: 'Ahmet', soyad: 'Yılmaz', email: 'ahmet.yilmaz@sirket.com', departman: 'Yazılım', kalanIzin: 14, saatBakiye: 3.5, sifre: DEFAULT_EMPLOYEE_PASSWORD },
   { id: 2, ad: 'Elif', soyad: 'Kaya', email: 'elif.kaya@sirket.com', departman: 'Pazarlama', kalanIzin: 9, saatBakiye: -2, sifre: DEFAULT_EMPLOYEE_PASSWORD },
@@ -73,7 +71,9 @@ const initialAnnouncements = [
 // ---------------------------------------------------------------------------
 const parseDate = (str) => new Date(`${str}T00:00:00`);
 const formatDate = (str) => parseDate(str).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
+
 const DEPT_COLORS = ['bg-indigo-500', 'bg-teal-500', 'bg-amber-500', 'bg-rose-500', 'bg-violet-500', 'bg-cyan-500'];
+
 const ACCENT = {
   indigo: 'bg-indigo-50 text-indigo-600',
   emerald: 'bg-emerald-50 text-emerald-600',
@@ -114,6 +114,9 @@ function PasswordField({ value, onChange, placeholder, onEnter }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Giriş Ekranı
+// ---------------------------------------------------------------------------
 function LoginScreen({ employees, onAdminLogin, onEmployeeLogin }) {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
@@ -196,7 +199,10 @@ function LoginScreen({ employees, onAdminLogin, onEmployeeLogin }) {
   );
 }
 
-function Header({ currentUser, employeeData, onLogout, theme }) {
+// ---------------------------------------------------------------------------
+// Ortak Header
+// ---------------------------------------------------------------------------
+function Header({ currentUser, employeeData, onLogout, theme, onSave, isDirty, savedFlash }) {
   return (
     <header className={theme === 'admin' ? 'bg-slate-900' : 'bg-white border-b border-slate-200'}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
@@ -211,17 +217,40 @@ function Header({ currentUser, employeeData, onLogout, theme }) {
             </p>
           </div>
         </div>
-        <button
-          onClick={onLogout}
-          className={`flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-colors shrink-0 ${theme === 'admin' ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}
-        >
-          <LogOut className="w-4 h-4" /><span className="hidden sm:inline">Çıkış</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {theme === 'admin' && (
+            <button
+              onClick={onSave}
+              className={`flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
+                savedFlash
+                  ? 'bg-emerald-600 text-white'
+                  : isDirty
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  : 'bg-slate-800 text-slate-400'
+              }`}
+            >
+              {savedFlash ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+              <span className="hidden sm:inline">
+                {savedFlash ? 'Buluta Kaydedildi' : isDirty ? 'Değişiklikleri Buluta Kaydet' : 'Bulutla Senkronize'}
+              </span>
+              {isDirty && !savedFlash && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 sm:hidden" />}
+            </button>
+          )}
+          <button
+            onClick={onLogout}
+            className={`flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg transition-colors ${theme === 'admin' ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            <LogOut className="w-4 h-4" /><span className="hidden sm:inline">Çıkış</span>
+          </button>
+        </div>
       </div>
     </header>
   );
 }
 
+// ---------------------------------------------------------------------------
+// ADMIN — Dashboard
+// ---------------------------------------------------------------------------
 function AdminDashboard({ employees }) {
   const totalBalance = employees.reduce((s, e) => s + e.saatBakiye, 0);
   const deptCounts = employees.reduce((acc, e) => { acc[e.departman] = (acc[e.departman] || 0) + 1; return acc; }, {});
@@ -234,7 +263,7 @@ function AdminDashboard({ employees }) {
         <StatCard icon={Users} label="Toplam Çalışan" value={employees.length} accent="indigo" />
         <StatCard
           icon={totalBalance >= 0 ? TrendingUp : TrendingDown}
-          label="Şiriket Geneli Saat Bakiyesi"
+          label="Şirket Geneli Saat Bakiyesi"
           value={`${totalBalance >= 0 ? '+' : ''}${totalBalance.toFixed(1)} sa`}
           accent={totalBalance >= 0 ? 'emerald' : 'rose'}
         />
@@ -284,6 +313,9 @@ function AdminDashboard({ employees }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Ortak Modal Kabuğu
+// ---------------------------------------------------------------------------
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50" onClick={onClose}>
@@ -300,6 +332,9 @@ function Modal({ title, onClose, children }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// ADMIN — Çalışan Bilgilerini Düzenleme Formu
+// ---------------------------------------------------------------------------
 function EmployeeEditForm({ employee, onSave, onCancel }) {
   const [form, setForm] = useState({
     ad: employee.ad,
@@ -368,6 +403,9 @@ function EmployeeEditForm({ employee, onSave, onCancel }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// ADMIN — Çalışan şifresini satır içinde değiştirme
+// ---------------------------------------------------------------------------
 function EmployeePasswordCell({ emp, onUpdatePassword }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(emp.sifre);
@@ -416,41 +454,288 @@ function EmployeePasswordCell({ emp, onUpdatePassword }) {
 }
 
 // ---------------------------------------------------------------------------
-// DİNAMİK VERİTABANI BAĞLANTILI ANA UYGULAMA (APP) BİLEŞENİ
+// ADMIN — Çalışanlar + Excel/CSV Yükleme
 // ---------------------------------------------------------------------------
+const TEMPLATE_HEADERS = ['Ad', 'Soyad', 'Email', 'Departman', 'Kalan_Izin', 'Calisma_Saati_Bakiye', 'Sifre'];
+const TEMPLATE_SAMPLE_ROW = ['Ahmet', 'Yılmaz', 'ahmet.yilmaz@sirket.com', 'Yazılım', 14, 3.5, 'Ahmet2026!'];
+
+function AdminEmployees({ employees, onUpload, onUpdatePassword, onUpdateEmployee, onDeleteEmployee }) {
+  const [uploadMode, setUploadMode] = useState('append');
+  const [uploadStatus, setUploadStatus] = useState(null);
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [deletingEmployee, setDeletingEmployee] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const processRows = (rawRows) => {
+    const parsed = rawRows.map((r) => {
+      const norm = {};
+      Object.keys(r).forEach((k) => { norm[k.toString().trim().toLowerCase().replace(/\s+/g, '_')] = r[k]; });
+      const sifreRaw = (norm['sifre'] ?? norm['şifre'] ?? '').toString().trim();
+      return {
+        ad: (norm['ad'] ?? '').toString().trim(),
+        soyad: (norm['soyad'] ?? '').toString().trim(),
+        email: (norm['email'] ?? '').toString().trim(),
+        departman: (norm['departman'] ?? '').toString().trim() || 'Belirtilmemiş',
+        kalanIzin: parseFloat(norm['kalan_izin']) || 0,
+        saatBakiye: parseFloat(norm['calisma_saati_bakiye']) || 0,
+        sifre: sifreRaw,
+      };
+    }).filter((p) => p.email);
+
+    if (parsed.length === 0) {
+      setUploadStatus({ type: 'error', msg: 'Dosyada geçerli kayıt bulunamadı.' });
+    } else {
+      onUpload(parsed, uploadMode);
+      const withPw = parsed.filter((p) => p.sifre).length;
+      setUploadStatus({
+        type: 'success',
+        msg: `${parsed.length} kayıt ${uploadMode === 'overwrite' ? 'güncellendi / eklendi' : 'listeye eklendi'}.`,
+      });
+    }
+  };
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext === 'xlsx' || ext === 'xls') {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
+          processRows(rawRows);
+        } catch (err) {
+          setUploadStatus({ type: 'error', msg: 'Excel dosyası okunurken hata oluştu.' });
+        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const lines = String(evt.target.result).trim().split(/\r?\n/);
+          const headers = lines[0].split(',').map((h) => h.trim());
+          const rawRows = lines.slice(1).filter((l) => l.trim()).map((line) => {
+            const values = line.split(',').map((v) => v.trim());
+            const obj = {};
+            headers.forEach((h, i) => { obj[h] = values[i]; });
+            return obj;
+          });
+          processRows(rawRows);
+        } catch (err) {
+          setUploadStatus({ type: 'error', msg: 'CSV dosyası okunurken hata oluştu.' });
+        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6">
+        <div className="flex items-start justify-between flex-wrap gap-4 mb-4">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><FileSpreadsheet className="w-4 h-4 text-indigo-600" />Excel / CSV ile Toplu Yükleme</h3>
+            <p className="text-xs text-slate-500 mt-1">Sütun yapısına uygun bir .xlsx (Excel) ya da .csv dosyası seçip yükleyin.</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button onClick={() => { const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, TEMPLATE_SAMPLE_ROW]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Calisanlar'); XLSX.writeFile(wb, 'calisan_sablonu.xlsx'); }} className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-lg transition-colors"><Download className="w-3.5 h-3.5" />Excel Şablonu İndir</button>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex bg-slate-100 rounded-lg p-1 text-xs font-medium">
+            <button onClick={() => setUploadMode('append')} className={`px-3 py-1.5 rounded-md transition-colors ${uploadMode === 'append' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>Listeye Ekle</button>
+            <button onClick={() => setUploadMode('overwrite')} className={`px-3 py-1.5 rounded-md transition-colors ${uploadMode === 'overwrite' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>Üzerine Yaz</button>
+          </div>
+          <label className="flex items-center gap-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg cursor-pointer transition-colors">
+            <UploadCloud className="w-4 h-4" /> Dosya Seç ve Yükle
+            <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />
+          </label>
+        </div>
+        {uploadStatus && <p className={`text-xs mt-3 font-medium ${uploadStatus.type === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>{uploadStatus.msg}</p>}
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100"><h3 className="text-sm font-bold text-slate-900">Çalışan Listesi ({employees.length})</h3></div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
+              <tr>
+                <th className="px-6 py-3 text-left font-semibold">Ad Soyad</th>
+                <th className="px-6 py-3 text-left font-semibold">Email</th>
+                <th className="px-6 py-3 text-left font-semibold">Departman</th>
+                <th className="px-6 py-3 text-right font-semibold">Kalan İzin</th>
+                <th className="px-6 py-3 text-right font-semibold">Saat Bakiyesi</th>
+                <th className="px-6 py-3 text-right font-semibold">Şifre</th>
+                <th className="px-6 py-3 text-right font-semibold">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {employees.map((emp) => (
+                <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-3 font-medium text-slate-800 whitespace-nowrap">{emp.ad} {emp.soyad}</td>
+                  <td className="px-6 py-3 text-slate-500 whitespace-nowrap">{emp.email}</td>
+                  <td className="px-6 py-3 text-slate-500 whitespace-nowrap">{emp.departman}</td>
+                  <td className="px-6 py-3 text-right text-slate-700 whitespace-nowrap">{emp.kalanIzin} gün</td>
+                  <td className={`px-6 py-3 text-right font-semibold whitespace-nowrap ${emp.saatBakiye < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{emp.saatBakiye >= 0 ? '+' : ''}{emp.saatBakiye} sa</td>
+                  <td className="px-6 py-3 text-right whitespace-nowrap"><EmployeePasswordCell emp={emp} onUpdatePassword={onUpdatePassword} /></td>
+                  <td className="px-6 py-3 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => setEditingEmployee(emp)} className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"><Pencil className="w-3.5 h-3.5" />Düzenle</button>
+                      <button onClick={() => setDeletingEmployee(emp)} className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5" />Sil</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {editingEmployee && (
+        <Modal title={`${editingEmployee.ad} ${editingEmployee.soyad} — Bilgileri Düzenle`} onClose={() => setEditingEmployee(null)}>
+          <EmployeeEditForm employee={editingEmployee} onCancel={() => setEditingEmployee(null)} onSave={(updates) => { onUpdateEmployee(editingEmployee.id, updates); setEditingEmployee(null); }} />
+        </Modal>
+      )}
+
+      {deletingEmployee && (
+        <Modal title="Çalışanı Sil" onClose={() => setDeletingEmployee(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600"><span className="font-semibold text-slate-900">{deletingEmployee.ad} {deletingEmployee.soyad}</span> adlı çalışanı silmek üzeresiniz. Bu işlem geri alınamaz.</p>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => { onDeleteEmployee(deletingEmployee.id); setDeletingEmployee(null); }} className="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">Evet, Sil</button>
+              <button onClick={() => setDeletingEmployee(null)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold py-2.5 rounded-lg transition-colors">Vazgeç</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ADMIN — Duyurular
+// ---------------------------------------------------------------------------
+function AdminAnnouncements({ announcements, onAdd, onDelete }) {
+  const [baslik, setBaslik] = useState('');
+  const [icerik, setIcerik] = useState('');
+
+  const submit = () => {
+    if (!baslik.trim() || !icerik.trim()) return;
+    onAdd(baslik.trim(), icerik.trim());
+    setBaslik('');
+    setIcerik('');
+  };
+
+  return (
+    <div className="grid lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6 h-fit">
+        <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-indigo-600" />Yeni Duyuru</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1">Başlık</label>
+            <input value={baslik} onChange={(e) => setBaslik(e.target.value)} placeholder="Örn: Çalışma Saatleri" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1">İçerik</label>
+            <textarea value={icerik} onChange={(e) => setIcerik(e.target.value)} rows={4} placeholder="Duyuru metni..." className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <button onClick={submit} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors">Yayınla</button>
+        </div>
+      </div>
+      <div className="lg:col-span-2 space-y-4">
+        {announcements.length === 0 && <p className="text-sm text-slate-400 text-center py-10 bg-white rounded-2xl ring-1 ring-slate-200">Henüz duyuru yayınlanmadı.</p>}
+        {announcements.map((a) => (
+          <div key={a.id} className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm">{a.baslik}</h4>
+                <p className="text-xs text-slate-400 mt-0.5">{formatDate(a.tarih)}</p>
+              </div>
+              <button onClick={() => onDelete(a.id)} className="text-slate-400 hover:text-rose-600 transition-colors p-1.5 rounded-lg hover:bg-rose-50 shrink-0"><Trash2 className="w-4 h-4" /></button>
+            </div>
+            <p className="text-sm text-slate-600 mt-3 leading-relaxed">{a.icerik}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ÇALIŞAN — Ana Sayfa
+// ---------------------------------------------------------------------------
+function EmployeeHome({ employeeData, announcements }) {
+  return (
+    <div className="space-y-6">
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center shrink-0"><CalendarDays className="w-6 h-6 text-teal-600" /></div>
+          <div>
+            <p className="text-2xl font-bold text-slate-900">{employeeData?.kalanIzin} gün</p>
+            <p className="text-xs text-slate-500">Kalan Yıllık İzin</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-5 flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${employeeData?.saatBakiye >= 0 ? 'bg-emerald-50' : 'bg-rose-50'}`}>
+            {employeeData?.saatBakiye >= 0 ? <TrendingUp className="w-6 h-6 text-emerald-600" /> : <TrendingDown className="w-6 h-6 text-rose-600" />}
+          </div>
+          <div>
+            <p className={`text-2xl font-bold ${employeeData?.saatBakiye >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>{employeeData?.saatBakiye >= 0 ? '+' : ''}{employeeData?.saatBakiye} sa</p>
+            <p className="text-xs text-slate-500">Çalısma Saati Bakiyesi</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2"><Megaphone className="w-4 h-4 text-teal-600" />Duyurular</h3>
+        <div className="space-y-3">
+          {announcements.length === 0 && <p className="text-sm text-slate-400 bg-white rounded-2xl ring-1 ring-slate-200 py-8 text-center">Şu anda aktif duyuru bulunmuyor.</p>}
+          {announcements.map((a) => (
+            <div key={a.id} className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="font-bold text-slate-900 text-sm">{a.baslik}</h4>
+                <span className="text-xs text-slate-400 shrink-0">{formatDate(a.tarih)}</span>
+              </div>
+              <p className="text-sm text-slate-600 mt-2 leading-relaxed">{a.icerik}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Ana Uygulama Bileşeni (Vercel Redis Veritabanı Bağlantılı)
+// ---------------------------------------------------------------------------
+const ADMIN_TABS = [
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { key: 'employees', label: 'Çalışanlar', icon: Users },
+  { key: 'announcements', label: 'Duyurular', icon: Megaphone },
+];
+
 function App() {
-  const [employees, setEmployees] = useState(() => {
-  const saved = localStorage.getItem(STORAGE_KEYS.employees);
-  return saved ? JSON.parse(saved) : initialEmployees;
-    useEffect(() => {
-    localStorage.setItem(
-        STORAGE_KEYS.employees,
-        JSON.stringify(employees)
-    );
-}, [employees]);
-
-useEffect(() => {
-    localStorage.setItem(
-        STORAGE_KEYS.announcements,
-        JSON.stringify(announcements)
-    );
-}, [announcements]);
-});
-
-const [announcements, setAnnouncements] = useState(() => {
-  const saved = localStorage.getItem(STORAGE_KEYS.announcements);
-  return saved ? JSON.parse(saved) : initialAnnouncements;
-});
+  const [employees, setEmployees] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState({ role: null, id: null });
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [adminTab, setAdminTab] = useState('dashboard');
 
-  // Sayfa açıldığında verileri Vercel Redis'ten çekiyoruz
+  const [isDirty, setIsDirty] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const isFirstRender = useRef(true);
+
+  // Sayfa yüklendiğinde verileri Vercel KV Redis API'sinden çekiyoruz
   useEffect(() => {
     fetch('/api/getir')
       .then((res) => res.json())
       .then((data) => {
-        if (data.veri) {
+        if (data && data.veri) {
           setEmployees(data.veri.employees || initialEmployees);
           setAnnouncements(data.veri.announcements || initialAnnouncements);
         } else {
@@ -460,65 +745,103 @@ const [announcements, setAnnouncements] = useState(() => {
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Veri yüklenirken hata:", err);
+        console.error("Veritabanından veri alınamadı:", err);
         setEmployees(initialEmployees);
         setAnnouncements(initialAnnouncements);
         setLoading(false);
       });
   }, []);
 
-  // Değişiklikleri buluta senkronize eden fonksiyon
-  const bulutaKaydet = (guncelEmployees, guncelAnnouncements) => {
+  // State üzerindeki her yapısal değişiklikte "Kaydedilmemiş değişiklik var" durumunu tetikler
+  useEffect(() => {
+    if (isFirstRender.current) {
+      if (employees.length > 0 || announcements.length > 0) {
+        isFirstRender.current = false;
+      }
+      return;
+    }
+    setIsDirty(true);
+  }, [employees, announcements]);
+
+  // Sağ üstteki butona basıldığında Vercel KV Redis veritabanına POST isteği gönderir
+  const handleSave = () => {
     fetch('/api/kaydet', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        veri: {
-          employees: guncelEmployees || employees,
-          announcements: guncelAnnouncements || announcements
-        }
-      })
+      body: JSON.stringify({ veri: { employees, announcements } })
     })
     .then((res) => res.json())
     .then((data) => {
-      if (data.success) console.log("Bulut veritabanı senkronize edildi.");
+      if (data.success) {
+        setIsDirty(false);
+        setSavedFlash(true);
+        setTimeout(() => setSavedFlash(false), 1800);
+      } else {
+        alert("Buluta kaydetme başarısız oldu.");
+      }
     })
-    .catch((err) => console.error("Buluta kaydetme hatası:", err));
+    .catch((err) => {
+      console.error("Buluta veri yazma hatası:", err);
+      alert("Veritabanı bağlantı hatası oluştu.");
+    });
   };
 
-  const handleUpload = (newRows, mode) => {
-    let updated = [];
-    if (mode === 'overwrite') {
-      updated = newRows.map((r, i) => ({ id: i + 1, ...r }));
-    } else {
-      const maxId = employees.reduce((max, e) => e.id > max ? e.id : max, 0);
-      const formatted = newRows.map((r, i) => ({ id: maxId + i + 1, ...r }));
-      updated = [...employees, ...formatted];
-    }
-    setEmployees(updated);
-    bulutaKaydet(updated, null);
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setAdminTab('dashboard');
   };
 
-  const handleUpdatePassword = (id, newPassword) => {
-    const updated = employees.map((e) => e.id === id ? { ...e, sifre: newPassword } : e);
-    setEmployees(updated);
-    bulutaKaydet(updated, null);
+  const handleUpload = (parsed, mode) => {
+    setEmployees((prev) => {
+      if (mode === 'overwrite') {
+        const merged = [...prev];
+        parsed.forEach((p) => {
+          const idx = merged.findIndex((m) => m.email.toLowerCase() === p.email.toLowerCase());
+          if (idx >= 0) {
+            merged[idx] = { ...merged[idx], ...p, id: merged[idx].id, sifre: p.sifre ? p.sifre : merged[idx].sifre };
+          } else {
+            merged.push({ ...p, id: Date.now() + Math.random(), sifre: p.sifre || DEFAULT_EMPLOYEE_PASSWORD });
+          }
+        });
+        return merged;
+      }
+      return [...prev, ...parsed.map((p) => ({ ...p, id: Date.now() + Math.random(), sifre: p.sifre || DEFAULT_EMPLOYEE_PASSWORD }))];
+    });
+  };
+
+  const updateEmployeePassword = (id, newPassword) => {
+    setEmployees((prev) => prev.map((emp) => (emp.id === id ? { ...emp, sifre: newPassword } : emp)));
+  };
+
+  const updateEmployee = (id, updates) => {
+    setEmployees((prev) => prev.map((emp) => (emp.id === id ? { ...emp, ...updates } : emp)));
+  };
+
+  const deleteEmployee = (id) => {
+    setEmployees((prev) => prev.filter((emp) => emp.id !== id));
+  };
+
+  const addAnnouncement = (baslik, icerik) => {
+    setAnnouncements((prev) => [{ id: Date.now(), baslik, icerik, tarih: new Date().toISOString().slice(0, 10) }, ...prev]);
+  };
+
+  const deleteAnnouncement = (id) => {
+    setAnnouncements((prev) => prev.filter((a) => a.id !== id));
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <p className="text-white text-sm font-medium">Veritabanı bağlantısı kuruluyor, lütfen bekleyin...</p>
+        <p className="text-white text-sm font-medium tracking-wide">Bulut Veritabanı Bağlantısı Kuruluyor, Lütfen Bekleyin...</p>
       </div>
     );
   }
 
-  // Kullanıcı giriş yapmamışsa Login ekranını göster
-  if (!currentUser.role) {
+  if (!currentUser) {
     return (
       <LoginScreen
         employees={employees}
-        onAdminLogin={() => setCurrentUser({ role: 'admin', id: null })}
+        onAdminLogin={() => setCurrentUser({ role: 'admin' })}
         onEmployeeLogin={(id) => setCurrentUser({ role: 'employee', id })}
       />
     );
@@ -527,93 +850,54 @@ const [announcements, setAnnouncements] = useState(() => {
   const employeeData = currentUser.role === 'employee' ? employees.find((e) => e.id === currentUser.id) : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50">
       <Header
         currentUser={currentUser}
         employeeData={employeeData}
-        onLogout={() => setCurrentUser({ role: null, id: null })}
-        theme={currentUser.role}
+        onLogout={handleLogout}
+        theme={currentUser.role === 'admin' ? 'admin' : 'employee'}
+        onSave={handleSave}
+        isDirty={isDirty}
+        savedFlash={savedFlash}
       />
-      
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
-        {currentUser.role === 'admin' ? (
-          <div className="space-y-6">
-            <div className="flex gap-2 border-b border-slate-200 pb-px overflow-x-auto whitespace-nowrap">
-              <button onClick={() => setActiveTab('dashboard')} className={`pb-3 text-sm font-medium border-b-2 px-1 transition-colors ${activeTab === 'dashboard' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>Dashboard</button>
-              <button onClick={() => setActiveTab('employees')} className={`pb-3 text-sm font-medium border-b-2 px-1 transition-colors ${activeTab === 'employees' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>Çalışan Yönetimi</button>
+
+      {currentUser.role === 'admin' ? (
+        <React.Fragment>
+          <nav className="bg-slate-900 border-t border-slate-800">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 overflow-x-auto">
+              {ADMIN_TABS.map((tab) => {
+                const IconComp = tab.icon;
+                const active = adminTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setAdminTab(tab.key)}
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${active ? 'border-indigo-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                  >
+                    <IconComp className="w-4 h-4" />{tab.label}
+                  </button>
+                );
+              })}
             </div>
-            
-            {activeTab === 'dashboard' && <AdminDashboard employees={employees} />}
-            {activeTab === 'employees' && (
-              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6">
-                <h3 className="text-sm font-bold text-slate-900 mb-4">Çalışan Listesi</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-slate-50 text-slate-600 font-medium text-xs">
-                      <tr>
-                        <th className="px-4 py-3">Çalışan</th>
-                        <th className="px-4 py-3">Departman</th>
-                        <th className="px-4 py-3">İzin Bakiyesi</th>
-                        <th className="px-4 py-3">Saat Bakiyesi</th>
-                        <th className="px-4 py-3 text-right">Şifre İşlemleri</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {employees.map((emp) => (
-                        <tr key={emp.id} className="hover:bg-slate-50/50">
-                          <td className="px-4 py-3 font-medium text-slate-900">{emp.ad} {emp.soyad}<br/><span className="text-xs text-slate-400 font-normal">{emp.email}</span></td>
-                          <td className="px-4 py-3 text-slate-500">{emp.departman}</td>
-                          <td className="px-4 py-3">{emp.kalanIzin} gün</td>
-                          <td className="px-4 py-3 font-semibold text-xs">{emp.saatBakiye} sa</td>
-                          <td className="px-4 py-3 text-right"><EmployeePasswordCell emp={emp} onUpdatePassword={handleUpdatePassword} /></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
-              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6">
-                <h2 className="text-lg font-bold text-slate-900 mb-4">Duyurular</h2>
-                <div className="space-y-4">
-                  {announcements.map((ann) => (
-                    <div key={ann.id} className="border-l-4 border-teal-500 pl-4 py-1">
-                      <h3 className="font-bold text-slate-900 text-sm">{ann.baslik}</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">{formatDate(ann.tarih)}</p>
-                      <p className="text-slate-600 text-sm mt-2 leading-relaxed">{ann.icerik}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6">
-                <h2 className="text-base font-bold text-slate-900 mb-4">Bilgilerim</h2>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
-                    <span className="text-slate-500">Kalan İzin</span>
-                    <span className="font-bold text-slate-900">{employeeData?.kalanIzin} Gün</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Mesai Bakiyesi</span>
-                    <span className={`font-bold ${employeeData && employeeData.saatBakiye >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{employeeData?.saatBakiye} Saat</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
+          </nav>
+
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+            {adminTab === 'dashboard' && <AdminDashboard employees={employees} />}
+            {adminTab === 'employees' && <AdminEmployees employees={employees} onUpload={handleUpload} onUpdatePassword={updateEmployeePassword} onUpdateEmployee={updateEmployee} onDeleteEmployee={deleteEmployee} />}
+            {adminTab === 'announcements' && <AdminAnnouncements announcements={announcements} onAdd={addAnnouncement} onDelete={deleteAnnouncement} />}
+          </main>
+        </React.Fragment>
+      ) : (
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+          <EmployeeHome employeeData={employeeData} announcements={announcements} />
+        </main>
+      )}
     </div>
   );
 }
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
 </script>
 </body>
-</html> 
+</html>
