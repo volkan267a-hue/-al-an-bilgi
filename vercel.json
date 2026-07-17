@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/storage-getir",
-      "destination": "/api/storage-getir/index.js"
+      "destination": "/getir.js"
     },
     {
       "source": "/api/storage-kaydet",
-      "destination": "/api/storage-kaydet/index.js"
+      "destination": "/kaydet.js"
     }
   ]
 }
