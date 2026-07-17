@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/storage-getir",
+      "destination": "/api/storage-getir/index.js"
+    },
+    {
+      "source": "/api/storage-kaydet",
+      "destination": "/api/storage-kaydet/index.js"
+    }
+  ]
+}
