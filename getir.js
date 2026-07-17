@@ -1,12 +1,9 @@
-export default async function handler(request, response) {
-  const REDIS_URL = process.env.REDIS_URL;
-
+import { kv } from '@vercel/kv';
+export default async function handler(req, res) {
   try {
-    const res = await fetch(`${REDIS_URL}/get/ortak_liste`);
-    const data = await res.json();
-
-    return response.status(200).json({ veri: data.result });
+    const data = await kv.get('portal_verileri');
+    return res.status(200).json(data || { veri: null });
   } catch (error) {
-    return response.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 }
