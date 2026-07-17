@@ -50,7 +50,10 @@ const Pencil = (p) => <Icon {...p}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2
 // ---------------------------------------------------------------------------
 const ADMIN_PASSWORD = 'admin123';
 const DEFAULT_EMPLOYEE_PASSWORD = '1234';
-
+const STORAGE_KEYS = {
+  employees: "portal_employees",
+  announcements: "portal_announcements"
+};
 const initialEmployees = [
   { id: 1, ad: 'Ahmet', soyad: 'Yılmaz', email: 'ahmet.yilmaz@sirket.com', departman: 'Yazılım', kalanIzin: 14, saatBakiye: 3.5, sifre: DEFAULT_EMPLOYEE_PASSWORD },
   { id: 2, ad: 'Elif', soyad: 'Kaya', email: 'elif.kaya@sirket.com', departman: 'Pazarlama', kalanIzin: 9, saatBakiye: -2, sifre: DEFAULT_EMPLOYEE_PASSWORD },
@@ -416,8 +419,28 @@ function EmployeePasswordCell({ emp, onUpdatePassword }) {
 // DİNAMİK VERİTABANI BAĞLANTILI ANA UYGULAMA (APP) BİLEŞENİ
 // ---------------------------------------------------------------------------
 function App() {
-  const [employees, setEmployees] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
+  const [employees, setEmployees] = useState(() => {
+  const saved = localStorage.getItem(STORAGE_KEYS.employees);
+  return saved ? JSON.parse(saved) : initialEmployees;
+    useEffect(() => {
+    localStorage.setItem(
+        STORAGE_KEYS.employees,
+        JSON.stringify(employees)
+    );
+}, [employees]);
+
+useEffect(() => {
+    localStorage.setItem(
+        STORAGE_KEYS.announcements,
+        JSON.stringify(announcements)
+    );
+}, [announcements]);
+});
+
+const [announcements, setAnnouncements] = useState(() => {
+  const saved = localStorage.getItem(STORAGE_KEYS.announcements);
+  return saved ? JSON.parse(saved) : initialAnnouncements;
+});
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState({ role: null, id: null });
   const [activeTab, setActiveTab] = useState('dashboard');
