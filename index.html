@@ -612,49 +612,41 @@ function App() {
   const [savedFlash, setSavedFlash] = useState(false);
   const isFirstRender = useRef(true);
 
-  // Doğrudan Vercel KV REST API'sine HTTP üzerinden istek atan akıllı fonksiyonlar
-  const REST_URL = KV_CONFIG.url + "/get/portal_verileri";
-  const REST_HEADERS = { Authorization: `Bearer ${KV_CONFIG.token}` };
-
+  // Doğrudan bulut veritabanından veri çekme komutu
   useEffect(() => {
-    fetch(REST_URL, { headers: REST_HEADERS })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.result) {
-          const parsed = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
-          if (parsed && parsed.veri) {
-            setEmployees(parsed.veri.employees || initialEmployees);
-            setAnnouncements(parsed.veri.announcements || initialAnnouncements);
-          } else {
-            setEmployees(initialEmployees);
-            setAnnouncements(initialAnnouncements);
-          }
-        } else {
-          // Bulutta henüz veri yoksa yerel hafızaya veya varsayılanlara bakar
-          const local = localStorage.getItem('calisan_yedek_data');
-          if(local) {
-            const p = JSON.parse(local);
-            setEmployees(p.employees || initialEmployees);
-            setAnnouncements(p.announcements || initialAnnouncements);
-          } else {
-            setEmployees(initialEmployees);
-            setAnnouncements(initialAnnouncements);
-          }
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        const local = localStorage.getItem('calisan_yedek_data');
-        if(local) {
-          const p = JSON.parse(local);
-          setEmployees(p.employees || initialEmployees);
-          setAnnouncements(p.announcements || initialAnnouncements);
+    if (!KV_CONFIG.url || KV_CONFIG.url.includes("BURAYA")) {
+      setEmployees(initialEmployees);
+      setAnnouncements(initialAnnouncements);
+      setLoading(false);
+      return;
+    }
+
+    const targetUrl = `${KV_CONFIG.url}/get/portal_verileri`;
+    fetch(targetUrl, {
+      headers: { Authorization: `Bearer ${KV_CONFIG.token}` }
+    })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data && data.result) {
+        const parsed = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
+        if (parsed && parsed.veri) {
+          setEmployees(parsed.veri.employees || initialEmployees);
+          setAnnouncements(parsed.veri.announcements || initialAnnouncements);
         } else {
           setEmployees(initialEmployees);
           setAnnouncements(initialAnnouncements);
         }
-        setLoading(false);
-      });
+      } else {
+        setEmployees(initialEmployees);
+        setAnnouncements(initialAnnouncements);
+      }
+      setLoading(false);
+    })
+    .catch(() => {
+      setEmployees(initialEmployees);
+      setAnnouncements(initialAnnouncements);
+      setLoading(false);
+    });
   }, []);
 
   useEffect(() => {
@@ -665,17 +657,28 @@ function App() {
     setIsDirty(true);
   }, [employees, announcements]);
 
+  // Doğrudan bulut veritabanına veri gönderme komutu (CORS ve Vercel Güvenlik Uyumlu)
   const handleSave = () => {
     localStorage.setItem('calisan_yedek_data', JSON.stringify({ employees, announcements }));
     
-    const payload = JSON.stringify({ veri: { employees, announcements } });
-    
-    fetch(KV_CONFIG.url + "/set/portal_verileri", {
+    if (!KV_CONFIG.url || KV_CONFIG.url.includes("BURAYA")) {
+      setIsDirty(false);
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1800);
+      return;
+    }
+
+    const payloadStr = JSON.stringify({ veri: { employees, announcements } });
+    const targetUrl = `${KV_CONFIG.url}/set/portal_verileri`;
+
+    fetch(targetUrl, {
       method: 'POST',
-      headers: REST_HEADERS,
-      body: payload
+      headers: { 
+        Authorization: `Bearer ${KV_CONFIG.token}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: payloadStr
     })
-    .then((res) => res.json())
     .then(() => {
       setIsDirty(false);
       setSavedFlash(true);
@@ -734,7 +737,7 @@ function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <p className="text-white text-sm font-medium tracking-wide">Bulut Veritabanı Entegrasyonu Doğrulanıyor...</p>
+        <p className="text-white text-sm font-medium tracking-wide">Bulut Veritabanı Havuzu Doğrulanıyor...</p>
       </div>
     );
   }
@@ -781,8 +784,9 @@ function App() {
   );
 }
 
+// ---------------------------------------------------------------------------
 REDIS_URL="redis://default:788AOW3wZ14yvnaZLmg2NMy9HQqUiYJ5@perfect-sleet-ice-91128.db.redis.io:11732"
-  
+// ---------------------------------------------------------------------------
 const KV_CONFIG = {
   url: "BURAYA_KV_REST_API_URL_YAZIN",
   token: "BURAYA_KV_REST_API_TOKEN_YAZIN"
