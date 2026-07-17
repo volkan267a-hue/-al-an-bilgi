@@ -612,22 +612,38 @@ function App() {
   const [savedFlash, setSavedFlash] = useState(false);
   const isFirstRender = useRef(true);
 
-  // Vercel KV'nin varsayılan /api/blob veya yerel json entegrasyonu için akıllı endpoint yönlendirmesi
+  // Doğrudan Vercel KV REST API'sine HTTP üzerinden istek atan akıllı fonksiyonlar
+  const REST_URL = KV_CONFIG.url + "/get/portal_verileri";
+  const REST_HEADERS = { Authorization: `Bearer ${KV_CONFIG.token}` };
+
   useEffect(() => {
-    fetch('/api/storage-getir')
+    fetch(REST_URL, { headers: REST_HEADERS })
       .then((res) => res.json())
       .then((data) => {
-        if (data && data.veri) {
-          setEmployees(data.veri.employees || initialEmployees);
-          setAnnouncements(data.veri.announcements || initialAnnouncements);
+        if (data && data.result) {
+          const parsed = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
+          if (parsed && parsed.veri) {
+            setEmployees(parsed.veri.employees || initialEmployees);
+            setAnnouncements(parsed.veri.announcements || initialAnnouncements);
+          } else {
+            setEmployees(initialEmployees);
+            setAnnouncements(initialAnnouncements);
+          }
         } else {
-          setEmployees(initialEmployees);
-          setAnnouncements(initialAnnouncements);
+          // Bulutta henüz veri yoksa yerel hafızaya veya varsayılanlara bakar
+          const local = localStorage.getItem('calisan_yedek_data');
+          if(local) {
+            const p = JSON.parse(local);
+            setEmployees(p.employees || initialEmployees);
+            setAnnouncements(p.announcements || initialAnnouncements);
+          } else {
+            setEmployees(initialEmployees);
+            setAnnouncements(initialAnnouncements);
+          }
         }
         setLoading(false);
       })
       .catch(() => {
-        // Doğrudan bir proxy yoksa yerel hafıza ve varsayılanları miks yapıp sistemi açık tutar
         const local = localStorage.getItem('calisan_yedek_data');
         if(local) {
           const p = JSON.parse(local);
@@ -650,22 +666,22 @@ function App() {
   }, [employees, announcements]);
 
   const handleSave = () => {
-    // Hem tarayıcıya yedekler hem de Vercel Storage'a istek gönderir
     localStorage.setItem('calisan_yedek_data', JSON.stringify({ employees, announcements }));
     
-    fetch('/api/storage-kaydet', {
+    const payload = JSON.stringify({ veri: { employees, announcements } });
+    
+    fetch(KV_CONFIG.url + "/set/portal_verileri", {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ veri: { employees, announcements } })
+      headers: REST_HEADERS,
+      body: payload
     })
     .then((res) => res.json())
-    .then((data) => {
+    .then(() => {
       setIsDirty(false);
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 1800);
     })
     .catch(() => {
-      // API tam oturmasa bile yerel yedekleme çalıştığı için kullanıcıya hissettirmeden kaydeder
       setIsDirty(false);
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 1800);
@@ -764,6 +780,13 @@ function App() {
     </div>
   );
 }
+
+REDIS_URL="redis://default:788AOW3wZ14yvnaZLmg2NMy9HQqUiYJ5@perfect-sleet-ice-91128.db.redis.io:11732"
+  
+const KV_CONFIG = {
+  url: "BURAYA_KV_REST_API_URL_YAZIN",
+  token: "BURAYA_KV_REST_API_TOKEN_YAZIN"
+};
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
