@@ -1,12 +1,1 @@
-{
-  "version": 2,
-  "builds": [
-    { "src": "index.html", "use": "@vercel/static" },
-    { "src": "getir.js", "use": "@vercel/node" },
-    { "src": "kaydet.js", "use": "@vercel/node" }
-  ],
-  "rewrites": [
-    { "source": "/api/storage-getir", "destination": "/getir.js" },
-    { "source": "/api/storage-kaydet", "destination": "/kaydet.js" }
-  ]
-}
+
