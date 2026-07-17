@@ -1,19 +1,11 @@
-export default async function handler(request, response) {
-  if (request.method !== 'POST') {
-    return response.status(405).json({ error: 'Sadece POST istekleri kabul edilir' });
-  }
-
-  const { veri } = request.body;
-  const REDIS_URL = process.env.REDIS_URL; 
-
+import { kv } from '@vercel/kv';
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
-    const res = await fetch(`${REDIS_URL}/set/ortak_liste`, {
-      method: 'POST',
-      body: JSON.stringify(veri)
-    });
-
-    return response.status(200).json({ success: true });
+    const { veri } = req.body;
+    await kv.set('portal_verileri', { veri });
+    return res.status(200).json({ success: true });
   } catch (error) {
-    return response.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 }
